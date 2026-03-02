@@ -1,6 +1,7 @@
 from typing import List
 import logging
 import os
+import re
 import things
 from fastmcp import FastMCP
 from .formatters import format_todo, format_project, format_area, format_tag, format_heading
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 TRANSPORT = os.environ.get("THINGS_MCP_TRANSPORT", "stdio")  # "stdio" or "http"
 HTTP_HOST = os.environ.get("THINGS_MCP_HOST", "127.0.0.1")
 HTTP_PORT = int(os.environ.get("THINGS_MCP_PORT", "8000"))
+
+PERIOD_PATTERN = re.compile(r'^\d+[dwmy]$')
 
 # Initialize FastMCP server
 mcp = FastMCP("Things")
@@ -151,6 +154,8 @@ async def get_logbook(period: str = "7d", limit: int = 50) -> str:
         period: Time period to look back (e.g., '3d', '1w', '2m', '1y'). Defaults to '7d'
         limit: Maximum number of entries to return. Defaults to 50
     """
+    if not PERIOD_PATTERN.match(period):
+        return f"Invalid period format '{period}'. Use a number followed by d (days), w (weeks), m (months), or y (years). Examples: '3d', '1w', '2m', '1y'"
     todos = things.last(period, status='completed', include_items=True)
     if todos and len(todos) > limit:
         todos = todos[:limit]
@@ -289,7 +294,7 @@ async def search_advanced(
     deadline: str = None,
     tag: str = None,
     area: str = None,
-    type: str = None,
+    item_type: str = None,
     last: str = None
 ) -> str:
     """Advanced todo search with multiple filters
@@ -300,7 +305,7 @@ async def search_advanced(
         deadline: Filter by deadline (YYYY-MM-DD)
         tag: Filter by tag
         area: Filter by area UUID
-        type: Filter by item type (to-do, project, heading)
+        item_type: Filter by item type (to-do, project, heading)
         last: Filter by creation date (e.g., '3d' for last 3 days, '1w' for last week, '1y' for last year)
     """
     search_params = {}
@@ -317,10 +322,10 @@ async def search_advanced(
     if last:
         search_params["last"] = last
 
-    if type:
+    if item_type:
         # Use things.tasks() when type is specified since things.todos()
         # hardcodes type="to-do"
-        todos = things.tasks(type=type, include_items=True, **search_params)
+        todos = things.tasks(type=item_type, include_items=True, **search_params)
     else:
         todos = things.todos(include_items=True, **search_params)
     if not todos:
@@ -337,6 +342,8 @@ async def get_recent(period: str) -> str:
     Args:
         period: Time period (e.g., '3d', '1w', '2m', '1y')
     """
+    if not PERIOD_PATTERN.match(period):
+        return f"Invalid period format '{period}'. Use a number followed by d (days), w (weeks), m (months), or y (years). Examples: '3d', '1w', '2m', '1y'"
     todos = things.last(period, include_items=True)
     if not todos:
         return f"No items found in the last {period}"

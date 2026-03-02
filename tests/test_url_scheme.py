@@ -12,29 +12,33 @@ class TestExecuteUrl:
 
     @patch('subprocess.run')
     def test_execute_url_success(self, mock_run):
-        """Test successful URL execution via osascript with open -g."""
+        """Test successful URL execution via open -g."""
         mock_run.return_value = Mock(returncode=0)
 
         execute_url("things:///add?title=Test")
 
         mock_run.assert_called_once_with(
-            ['osascript', '-e', 'do shell script "open -g \\"things:///add?title=Test\\""'],
+            ['open', '-g', 'things:///add?title=Test'],
             check=True, capture_output=True, text=True
         )
 
     @patch('subprocess.run')
-    def test_execute_url_fallback(self, mock_run):
-        """Test fallback to open -g directly when osascript fails."""
-        # First call (osascript) fails, second call (open -g) succeeds
-        mock_run.side_effect = [
-            subprocess.CalledProcessError(1, 'osascript'),
-            Mock(returncode=0)
-        ]
+    def test_execute_url_failure_raises_runtime_error(self, mock_run):
+        """Test that a failed open -g raises RuntimeError."""
+        error = subprocess.CalledProcessError(1, 'open')
+        error.stderr = "open failed"
+        mock_run.side_effect = error
 
-        execute_url("things:///add?title=Test")
+        with pytest.raises(RuntimeError, match="Failed to execute Things URL"):
+            execute_url("things:///add?title=Test")
 
-        assert mock_run.call_count == 2
-        mock_run.assert_called_with(['open', '-g', 'things:///add?title=Test'], check=True)
+    @patch('subprocess.run')
+    def test_execute_url_missing_open_raises_runtime_error(self, mock_run):
+        """Test that missing open command raises RuntimeError."""
+        mock_run.side_effect = FileNotFoundError()
+
+        with pytest.raises(RuntimeError, match="requires macOS"):
+            execute_url("things:///add?title=Test")
 
 
 class TestConstructUrl:
@@ -109,9 +113,8 @@ class TestAddTodo:
             list_title="Inbox",
             heading="Important",
             heading_id="heading-uuid",
-            completed=False
         )
-        
+
         assert "title=Test%20Todo" in url
         assert "notes=Test%20notes" in url
         assert "when=today" in url
@@ -122,7 +125,6 @@ class TestAddTodo:
         assert "list=Inbox" in url
         assert "heading=Important" in url
         assert "heading-id=heading-uuid" in url
-        assert "completed=false" in url
     
     def test_add_todo_tags_handling(self):
         """Test proper tag handling in add_todo."""

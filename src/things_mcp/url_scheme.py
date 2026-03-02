@@ -31,14 +31,20 @@ def format_when_with_reminder(date: str, time: str) -> str:
 def execute_url(url: str) -> None:
     """Execute a Things URL without bringing Things to the foreground."""
     try:
-        # Use 'do shell script' with 'open -g' to open in background
-        subprocess.run([
-            'osascript', '-e',
-            f'do shell script "open -g \\"{url}\\""'
-        ], check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError:
-        # Fallback - still try with open -g directly
-        subprocess.run(['open', '-g', url], check=True)
+        subprocess.run(
+            ['open', '-g', url],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"Failed to execute Things URL: {e.stderr or e}"
+        ) from e
+    except FileNotFoundError:
+        raise RuntimeError(
+            "Could not find 'open' command. This tool requires macOS."
+        )
 
 def construct_url(command: str, params: Dict[str, Any]) -> str:
     """Construct a Things URL from command and parameters."""
@@ -73,8 +79,7 @@ def add_todo(title: str, notes: Optional[str] = None, when: Optional[str] = None
              deadline: Optional[str] = None, tags: Optional[list[str]] = None,
              checklist_items: Optional[list[str]] = None, list_id: Optional[str] = None,
              list_title: Optional[str] = None, heading: Optional[str] = None,
-             heading_id: Optional[str] = None,
-             completed: Optional[bool] = None) -> str:
+             heading_id: Optional[str] = None) -> str:
     """Construct URL to add a new todo.
 
     Args:
@@ -91,7 +96,6 @@ def add_todo(title: str, notes: Optional[str] = None, when: Optional[str] = None
         list_title: Title of project/area to add to
         heading: Heading title within project
         heading_id: UUID of heading within project
-        completed: Mark as completed on creation
     """
     params = {
         'title': title,
@@ -103,7 +107,6 @@ def add_todo(title: str, notes: Optional[str] = None, when: Optional[str] = None
         'list': list_title,
         'heading': heading,
         'heading-id': heading_id,
-        'completed': completed
     }
 
     # Handle tags separately since they need to be comma-separated

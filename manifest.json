@@ -8,14 +8,15 @@
   "author": {
     "name": "Hal Dick",
     "email": "hal@robotonwheels.com",
-    "url": "https://github.com/hald/things-mcp"
+    "url": "https://github.com/hald/things-mcp",
+    "note": "Forked and maintained locally by jordiparra"
   },
   "server": {
     "type": "python",
     "entry_point": "server/stub.py",
     "mcp_config": {
-      "command": "uvx",
-      "args": ["things-mcp"]
+      "command": "/Users/jordip/.local/bin/things-mcp",
+      "args": []
     }
   },
   "tools": [

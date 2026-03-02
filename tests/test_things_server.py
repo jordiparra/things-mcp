@@ -7,7 +7,7 @@ async def test_get_todos_includes_checklist(mocker, mock_todo):
     mock_things_todos = mocker.patch('things.todos')
     mock_things_todos.return_value = [mock_todo]
 
-    result = await get_todos.fn(include_items=True)
+    result = await get_todos(include_items=True)
 
     assert "Checklist:" in result
     assert "First item" in result
@@ -19,7 +19,7 @@ async def test_get_today_includes_checklist(mocker, mock_todo):
     mock_today = mocker.patch('things.today')
     mock_today.return_value = [mock_todo]
 
-    result = await get_today.fn()
+    result = await get_today()
 
     assert "Checklist:" in result
     assert "First item" in result
@@ -31,7 +31,7 @@ async def test_search_todos_includes_checklist(mocker, mock_todo):
     mock_search = mocker.patch('things.search')
     mock_search.return_value = [mock_todo]
 
-    result = await search_todos.fn("Test")
+    result = await search_todos("Test")
 
     assert "Checklist:" in result
     assert "First item" in result
@@ -44,7 +44,7 @@ async def test_search_advanced_with_type_project(mocker, mock_project):
     mock_things_tasks = mocker.patch('things.tasks')
     mock_things_tasks.return_value = [mock_project]
 
-    result = await search_advanced.fn(type="project")
+    result = await search_advanced(item_type="project")
 
     # Should call things.tasks() with type parameter, not things.todos()
     mock_things_tasks.assert_called_once_with(
@@ -59,7 +59,7 @@ async def test_search_advanced_without_type(mocker, mock_todo):
     mock_things_todos = mocker.patch('things.todos')
     mock_things_todos.return_value = [mock_todo]
 
-    result = await search_advanced.fn(status="incomplete")
+    result = await search_advanced(status="incomplete")
 
     # Should call things.todos() when no type specified
     mock_things_todos.assert_called_once_with(
